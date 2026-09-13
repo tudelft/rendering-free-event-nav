@@ -1,0 +1,3 @@
+[submodule "isaac_eval/evis"]
+	path = isaac_eval/evis
+	url = https://github.com/spikelab-jhu/isaac-sim-event-camera-plugin
