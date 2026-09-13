@@ -1,0 +1,7 @@
+jax==0.4.33
+numpy==1.26.4
+flax==0.8.5
+optax==0.2.2
+orbax-checkpoint==0.5.20
+matplotlib
+pillow
