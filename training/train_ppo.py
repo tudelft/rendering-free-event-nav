@@ -3,7 +3,7 @@ family. The env is SkyCourse's own jitted closures, vmapped (env_vec.py), so
 the observation/dynamics contract is identical to the DreamerV3 runs.
 
 Usage (dreamerv3 env python):
-  python ppo/train_ppo.py --task yawzoneh32r7w20gxv3 --logdir runs/ppo_gx_v3 \
+  python training/train_ppo.py --task yawzoneh32r7w20gxv3 --logdir runs/ppo_gx_v3 \
       --num-envs 512 --total-steps 100e6
 Checkpoints: <logdir>/ckpt.pkl (latest), <logdir>/BEST.pkl (det-eval banked).
 Deterministic eval (mean action) on 30 fixed seeds runs every --eval-every

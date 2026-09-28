@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Rendering-Free Event Frame Simulation for Fast Reinforcement Learning of Autonomous Robot Navigation"
+abstract: >-
+  An analytic event-camera simulator that synthesizes calibrated event observations directly
+  from scene geometry and ego-motion, without rendering, and the reinforcement-learning
+  pipeline that trains goal-directed obstacle avoidance on top of it.
+authors:
+  - name: "Anonymous (under review)"
+year: 2027
+license: MIT
+repository-code: "https://github.com/dfordequan/rendering-free-event-nav"

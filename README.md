@@ -3,48 +3,86 @@
 **Rendering-Free Event Frame Simulation for Fast Reinforcement Learning of Autonomous Robot Navigation**
 
 An analytic event-camera simulator that synthesizes calibrated GenX320 DIFF3D observations
-directly from scene geometry and ego-motion — no rendering — fast enough to train
-goal-directed obstacle-avoidance policies with PPO in **34 minutes on one RTX 4090**
-(19–21k env steps/s across 512 parallel environments). Policies transfer **zero-shot**
-to ray-traced Isaac Sim (EVIS event model) and to a real 56 g Crazyflie flying fully
-onboard on an STM32N6 microcontroller.
+directly from scene geometry and ego-motion — with no rendering anywhere in the loop. It
+produces a 64×64 event frame in **17 µs**, against 6.9 ms for a ray-traced pipeline, which is
+fast enough to train goal-directed obstacle avoidance with PPO in **34 minutes on one RTX 4090**
+(40 M environment steps at 19–21 k steps/s across 512 parallel environments).
 
-> Paper: [link TBD] · Real-flight video: **[placeholder — coming with camera-ready]**
+The resulting policy transfers **zero-shot** to ray-traced Isaac Sim with a physically based
+event camera, and to a real 56 g drone flying entirely onboard.
 
-## Results (all policies one checkpoint, shared action contract v∈[0,3.5] m/s @ 13.3 Hz)
+> Paper: link to follow · Video: link to follow
 
-| arm | training cost | SR shadow (n=30) | SR texture (n=30) | AGV |
+## Results
+
+One checkpoint throughout, under a shared action interface (v ∈ [0, 3.5] m/s at 13.3 Hz),
+evaluated in Isaac Sim + EVIS over n = 30 procedurally generated courses per condition.
+
+| arm | training cost | shadow scene | texture scene | AGV (shadow) |
 |---|---|---|---|---|
-| **PPO, analytic proxy (ours)** | 34 min, 1 GPU | **83%** | **70%** | 2.38 m/s |
-| PPO, privileged depth | 30 min, 1 GPU | 80% | 80% | 2.85 m/s |
-| Flow balancing (reactive) | — | 13% | 17% | 1.10 m/s |
-| PPO, rendered events (online EVIS) | 1 GPU-day (195k steps) | 40% | 53% | 1.78 m/s |
+| **analytic proxy (ours)** | **34 min**, 1 GPU | **83 %** (25/30) | **70 %** (21/30) | 2.38 m/s |
+| privileged ground-truth depth *(upper bound, not a peer)* | 34 min, 1 GPU | 100 % (30/30) | 97 % (29/30) | 2.19 m/s |
+| PPO on rendered events (online EVIS) | 1 GPU-day (195 k steps) | 40 % | 53 % | 1.78 m/s |
+| optic-flow balancing (reactive) | — | 13 % | 17 % | 1.10 m/s |
 
-Real world: 100% / 83% / 67% success across three arenas (5/5, 5/6, 4/6 flights),
-all sensing, inference, and state estimation onboard.
+Real flights: **82 %** of flights reached the goal across three arenas of increasing difficulty
+(5/5, 5/6, 4/6), with all sensing, inference and state estimation onboard, no map and no
+external positioning.
+
+The rendered-events row is an extrapolation of our own measured GPU-day throughput with this
+renderer; optimised rendering stacks will do better than that figure.
 
 ## Layout
 
-- `proxy/` — the analytic event model (edge points, saturating contrast trigger, DIFF3D mapping) + training environments
-- `training/` — PPO (`train_ppo.py`), vectorized env wrapper, networks, Isaac bridge clients
-- `calibration/` — the five-statistic calibration gate against real GenX320 recordings
-- `isaac_eval/` — closed-loop Isaac Sim 4.2 + EVIS evaluation server, AvoidBench-style metrics
-- `deploy/` — action/observation contract; ONNX→int8→Neural-ART pipeline docs (see `contracts.md`)
-- `firmware/`, `openmv_scripts/`, `cf_apps/` — flight firmware forks and mission scripts (submodules/inventory pending)
+| path | contents |
+|---|---|
+| `proxy/` | the analytic event model and the flight/course environment it runs in |
+| `training/` | PPO trainer, vectorized env wrapper, networks, in-proxy evaluation, Isaac bridge clients |
+| `checkpoints/` | the policy reported in the paper |
+| `calibration/` | the five-statistic calibration gate against real GenX320 recordings |
+| `isaac_eval/` | closed-loop Isaac Sim 4.2 + EVIS evaluation, AvoidBench-style metrics |
+| `deploy/` | the observation/action contract and the path to an int8 network onboard |
+| `firmware/`, `openmv_scripts/`, `cf_apps/` | placeholders for the onboard code (see below) |
 
-## Quickstart (proxy training, no Isaac needed)
+## Quickstart
+
+No Isaac Sim, no dataset and no event recordings are needed to train or evaluate in the proxy.
 
 ```bash
-pip install -r requirements.txt          # jax[cuda] per your CUDA version
-bash training/configs/ours.sh            # 40M steps, ~34 min on RTX 4090
-python calibration/proxy_calibration_check.py   # five-statistic gate vs reference stats
+pip install -r requirements.txt            # install jax[cuda] matching your CUDA version
+
+# evaluate the released policy (CPU is fine, ~1 min for 30 episodes)
+python training/eval_proxy.py checkpoints/ours_champion.pkl 30
+
+# reproduce the training run: 40 M steps, ~34 min on an RTX 4090
+bash training/configs/ours.sh
 ```
 
-Isaac evaluation additionally needs NVIDIA Isaac Sim 4.2 (`ISAAC_SIM_PATH`) and the
-EVIS plugin (`isaac_eval/evis` submodule). Checkpoints for every paper arm are published
-as GitHub Release assets.
+`training/configs/` also holds the privileged-depth baseline (`depth.sh`) and the Isaac
+evaluation entry point (`isaac_eval.sh`).
+
+## Reproducing the evaluations
+
+- **In-proxy** — `training/eval_proxy.py` rebuilds the environment from the contract stored in
+  the checkpoint, so the evaluation cannot drift from the arm that was trained.
+- **Isaac Sim + EVIS** — needs Isaac Sim 4.2 and the EVIS plugin, included as a submodule
+  (`git submodule update --init`). `isaac_eval/forest_policy_eval.py` runs the closed-loop
+  server; the policy connects over a socket so the two simulators never share a process.
+- **Calibration** — `calibration/` reproduces the five-statistic gate that fits the proxy's
+  scalars to a real sensor. Calibration is sensor identification, not policy adaptation: it uses
+  a single 10-second recording of the camera moved by hand, and no flight or task data.
+
+## Onboard code
+
+`firmware/`, `openmv_scripts/` and `cf_apps/` are placeholders. The flight firmware, the
+OpenMV N6 mission scripts and the Crazyflie app layer are not in this repository yet.
+`deploy/contracts.md` specifies the full interface in the meantime.
+
+## Citing
+
+See `CITATION.cff`.
 
 ## License
 
-MIT (this repository). Firmware forks keep their upstream licenses in their own submodules
-(crazyflie-firmware: GPL-3.0; openmv: MIT). EVIS plugin: MIT (SPIKE Lab, JHU).
+MIT for this repository (`LICENSE`). The vendored EVIS plugin under `isaac_eval/evis/` is a
+submodule and carries its own MIT license from its authors.

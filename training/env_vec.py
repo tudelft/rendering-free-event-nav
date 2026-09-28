@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'proxy'))
 import jax
 import jax.numpy as jnp
 import numpy as np
-from embodied.envs.skycourse import SkyCourse
+from skycourse import SkyCourse
 import quad_course_env as QC
 
 

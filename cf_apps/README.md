@@ -1,3 +1,7 @@
-# Pending (deploy agent inventory, Phase C of the release plan)
-Firmware forks (openmv N6/GenX320 DIFF3D, crazyflie-firmware app layer) join as
-submodules; mission scripts and fly configs land in openmv_scripts/ and cf_apps/.
+# cf_apps/ — placeholder
+
+The Crazyflie app-layer code is not in this repository yet: the module that receives yaw
+rate and forward speed from the policy board and forwards them to the flight controller,
+plus the logging used to record the flights reported in the paper.
+
+The interface it implements is specified in `deploy/contracts.md`.
