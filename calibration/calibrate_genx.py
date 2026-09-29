@@ -35,7 +35,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'proxy'))
 import quad_course_env as QC
-from embodied.envs.skycourse import SkyCourse
+from skycourse import SkyCourse
 
 REC = os.environ.get('GENX_REC', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'rec1.bin'))
 TASK = os.environ.get('GXTASK', 'yawzoneh32r10w20gx')

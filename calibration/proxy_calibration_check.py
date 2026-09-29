@@ -22,7 +22,7 @@ REF = {
 }
 TOL = dict(bg=12.0, p50=2.0, p90=5.0, blob=0.20, on=8.0)   # WARN outside these
 
-from embodied.envs.skycourse import SkyCourse
+from skycourse import SkyCourse
 env = SkyCourse(task=TASK, seed=123)
 obs = env.step({'action': np.zeros(2, np.float32), 'reset': True})
 rng = np.random.default_rng(0); frames = []

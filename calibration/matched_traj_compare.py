@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 import numpy as np, jax, jax.numpy as jnp
 import quad_course_env as QC
 import event_proxy as EP
-from embodied.envs.skycourse import SkyCourse
+from skycourse import SkyCourse
 
 EPD, OUT = sys.argv[1], sys.argv[2]
 NEPS = int(sys.argv[3]) if len(sys.argv) > 3 else 8

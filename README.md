@@ -49,14 +49,25 @@ renderer; optimised rendering stacks will do better than that figure.
 No Isaac Sim, no dataset and no event recordings are needed to train or evaluate in the proxy.
 
 ```bash
+git clone --recurse-submodules https://github.com/dfordequan/rendering-free-event-nav
+cd rendering-free-event-nav
 pip install -r requirements.txt            # install jax[cuda] matching your CUDA version
 
-# evaluate the released policy (CPU is fine, ~1 min for 30 episodes)
+# evaluate the released policy (CPU is fine)
 python training/eval_proxy.py checkpoints/ours_champion.pkl 30
 
 # reproduce the training run: 40 M steps, ~34 min on an RTX 4090
 bash training/configs/ours.sh
 ```
+
+Nothing else is required for either command: the environment is vendored in `proxy/`, so no
+agent framework, dataset, renderer or event recording needs to be installed. A short run
+(`--total-steps 4e5`) is a good way to confirm the install — the first update includes JIT
+compilation, after which throughput settles at 19--21 k steps/s on an RTX 4090.
+Training writes `BEST.pkl`, `ckpt.pkl` and `scores.jsonl` into `--logdir`.
+
+The submodule is only needed for the Isaac evaluation; proxy training and evaluation work
+without it.
 
 `training/configs/` also holds the privileged-depth baseline (`depth.sh`) and the Isaac
 evaluation entry point (`isaac_eval.sh`).
