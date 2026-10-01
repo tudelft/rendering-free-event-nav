@@ -41,8 +41,10 @@ renderer; optimised rendering stacks will do better than that figure.
 | `checkpoints/` | the policy reported in the paper |
 | `calibration/` | the five-statistic calibration gate against real GenX320 recordings |
 | `isaac_eval/` | closed-loop Isaac Sim 4.2 + EVIS evaluation, AvoidBench-style metrics |
-| `deploy/` | the observation/action contract and the path to an int8 network onboard |
-| `firmware/`, `openmv_scripts/`, `cf_apps/` | placeholders for the onboard code (see below) |
+| `deploy/` | the observation/action contract and the conversion chain to an int8 network onboard (`deploy/convert/`) |
+| `openmv_scripts/` | the OpenMV N6 mission scripts (13.3 Hz inference loop) + the compiled `policy.bin` |
+| `firmware/` | custom N6 firmware patches (the `framestack` module + GC-heap change that remove the in-flight GC freeze) |
+| `cf_apps/` | placeholder for the Crazyflie app layer (see below) |
 
 ## Quickstart
 
@@ -85,9 +87,10 @@ evaluation entry point (`isaac_eval.sh`).
 
 ## Onboard code
 
-`firmware/`, `openmv_scripts/` and `cf_apps/` are placeholders. The flight firmware, the
-OpenMV N6 mission scripts and the Crazyflie app layer are not in this repository yet.
-`deploy/contracts.md` specifies the full interface in the meantime.
+The OpenMV N6 mission scripts are in `openmv_scripts/` (with the compiled `policy.bin`), and the
+custom N6 firmware patches in `firmware/`. `deploy/convert/` converts a trained checkpoint into the
+onboard int8 `.bin` — see `deploy/convert/CONVERT.md`. The Crazyflie app layer (`cf_apps/`) is not in
+this repository yet; `deploy/contracts.md` specifies the UART interface it implements.
 
 ## Citing
 

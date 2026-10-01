@@ -4,3 +4,6 @@ runs/
 *.egg-info/
 .venv/
 .ipynb_checkpoints/
+
+# conversion intermediates (reproducible via deploy/convert/)
+deploy/convert/out/

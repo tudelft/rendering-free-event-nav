@@ -16,9 +16,22 @@ take a trained checkpoint to an int8 network running on the microcontroller.
 State estimation, obstacle avoidance and goal seeking all run on the board the drone carries;
 there is no off-board computation and no external positioning.
 
-## Firmware
+## Converting a trained checkpoint to the onboard `.bin`
 
-The flight firmware (the event-camera driver, the quantized-network runtime and the mission
-layer) is maintained in separate repositories tied to their vendor SDKs, and is not vendored
-here. `contracts.md` specifies everything needed to reimplement the interface against a
-different airframe or sensor.
+`convert/` turns a `checkpoints/*.pkl` actor into a Neural-ART `network_rel.bin` for the OpenMV N6,
+and `convert/CONVERT.md` is the step-by-step guide (port → calibrate → int8 → stedgeai). The chain
+was run end-to-end to produce `openmv_scripts/policy.bin` from `checkpoints/ours_champion.pkl`:
+
+```bash
+python deploy/convert/port_to_torch.py checkpoints/ours_champion.pkl        # Flax -> clean NCHW ONNX
+python deploy/convert/make_calib.py   --from-proxy checkpoints/ours_champion.pkl --n 512
+python deploy/convert/quantize_int8.py                                      # -> actor_int8.onnx
+STEDGEAI=/path/to/stedgeai deploy/convert/run_stedgeai.sh                   # -> network_rel.bin
+```
+
+## Firmware and onboard scripts
+
+The mission scripts live in `openmv_scripts/` and the custom N6 firmware notes/patches in
+`firmware/`. The event-camera driver and the Neural-ART runtime are part of the upstream OpenMV N6
+port and are not duplicated here. `contracts.md` specifies everything needed to reimplement the
+interface against a different airframe or sensor.
