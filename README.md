@@ -44,7 +44,7 @@ renderer; optimised rendering stacks will do better than that figure.
 | `deploy/` | the observation/action contract and the conversion chain to an int8 network onboard (`deploy/convert/`) |
 | `openmv_scripts/` | the OpenMV N6 mission scripts (13.3 Hz inference loop) + the compiled `policy.bin` |
 | `firmware/` | custom N6 firmware patches (the `framestack` module + GC-heap change that remove the in-flight GC freeze) |
-| `cf_apps/` | placeholder for the Crazyflie app layer (see below) |
+| `cf_apps/` | the Crazyflie firmware app (UART link, action → setpoints, goal-bearing uplink) and the takeoff/hand-over/land flight script |
 
 ## Quickstart
 
@@ -89,8 +89,9 @@ evaluation entry point (`isaac_eval.sh`).
 
 The OpenMV N6 mission scripts are in `openmv_scripts/` (with the compiled `policy.bin`), and the
 custom N6 firmware patches in `firmware/`. `deploy/convert/` converts a trained checkpoint into the
-onboard int8 `.bin` — see `deploy/convert/CONVERT.md`. The Crazyflie app layer (`cf_apps/`) is not in
-this repository yet; `deploy/contracts.md` specifies the UART interface it implements.
+onboard int8 `.bin` — see `deploy/convert/CONVERT.md`. The Crazyflie side is in `cf_apps/`: an
+out-of-tree firmware app that implements the UART interface in `deploy/contracts.md`, and the
+`cflib` script that takes off, hands control to the onboard policy and lands.
 
 ## Citing
 

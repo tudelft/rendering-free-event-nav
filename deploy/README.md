@@ -31,7 +31,7 @@ STEDGEAI=/path/to/stedgeai deploy/convert/run_stedgeai.sh                   # ->
 
 ## Firmware and onboard scripts
 
-The mission scripts live in `openmv_scripts/` and the custom N6 firmware notes/patches in
-`firmware/`. The event-camera driver and the Neural-ART runtime are part of the upstream OpenMV N6
+The mission scripts live in `openmv_scripts/`, the custom N6 firmware notes/patches in
+`firmware/`, and the Crazyflie app and flight script in `cf_apps/`. The event-camera driver and the Neural-ART runtime are part of the upstream OpenMV N6
 port and are not duplicated here. `contracts.md` specifies everything needed to reimplement the
 interface against a different airframe or sensor.

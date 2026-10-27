@@ -7,3 +7,9 @@ runs/
 
 # conversion intermediates (reproducible via deploy/convert/)
 deploy/convert/out/
+
+# Crazyflie out-of-tree build output and flight logs
+cf_apps/*/build/
+*.o
+.*.cmd
+cf_apps/n6_mission_*.csv

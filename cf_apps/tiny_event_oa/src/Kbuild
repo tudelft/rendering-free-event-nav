@@ -1,0 +1,1 @@
+obj-y += n6_uart.o
