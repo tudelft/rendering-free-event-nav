@@ -1,6 +1,6 @@
 """Warp-accelerated EVIS event generation (the paper's Path B, no Isaac Lab).
 
-This is the "Unlocking EVIS's full capability" plan from CLAUDE.md, implemented:
+How it works:
 render sparse RTX *keyframes* (rgb/HDR + motion_vectors + depth), synthesise the
 K-1 in-between frames on the GPU with EVIS's bidirectional motion-vector warp
 (`dvs_gen.warp.bidir_warp_gap`, pure torch), and feed every fine frame to EVIS's
@@ -50,8 +50,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-_DEFAULT_EVIS = os.path.join(os.path.dirname(__file__), "..", "..",
-                             "isaac-sim-event-camera-plugin")
+_DEFAULT_EVIS = os.path.join(os.path.dirname(__file__), "..", "evis")   # the submodule
 
 
 def _ensure_evis_on_path(evis_path: Optional[str] = None) -> str:

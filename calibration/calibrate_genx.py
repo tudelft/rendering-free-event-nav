@@ -1,7 +1,7 @@
 """Calibrate the single-channel GenX320 (`gx`) observation against the RECORDED sensor data.
 
-What the hardware actually does (openmv/drivers/sensors/genx320.c + tools/n6_deploy/
-n6_sweep_record_1ch.py, both read 2026-08-18):
+What the hardware actually does (openmv/drivers/sensors/genx320.c in the OpenMV N6 port,
+read 2026-08-18):
 
     1. EHC DIFF3D accumulates a SIGNED net (ON-OFF) per pixel at 320x320 over a 20 ms window
        (INTEGRATION_DEF_PREIOD = 20000 us, EHC_DIFF3D_N_BITS_SIZE = 7 -> signed 8-bit).
@@ -26,7 +26,7 @@ fraction, because the active fraction is scene content (rec1.bin is a hand movin
 lens, so it fills the frame; a forest frame is mostly empty sky) while the per-edge amplitude is
 set by the sensor pipeline.
 
-Usage: JAX_PLATFORMS=cpu python scripts/calibrate_genx.py [task] [episodes]
+Usage: JAX_PLATFORMS=cpu python calibration/calibrate_genx.py [task] [episodes]
 """
 import os
 os.environ.setdefault('JAX_PLATFORMS', 'cpu')

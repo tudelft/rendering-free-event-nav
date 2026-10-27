@@ -16,7 +16,7 @@ ONNX="${1:-deploy/convert/out/actor_int8.onnx}"
 OUT="${2:-deploy/convert/out}"
 WS="${OUT}/ws"
 STEDGEAI="${STEDGEAI:-stedgeai}"
-NEURALART="${NEURALART:-$HOME/developer_dq/openmv/lib/stai/scripts/neuralart.json}"
+NEURALART="${NEURALART:?set NEURALART to the neuralart.json of the OpenMV N6 port (openmv/lib/stai/scripts/neuralart.json)}"
 
 mkdir -p "$OUT" "$WS"
 "$STEDGEAI" generate \

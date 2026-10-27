@@ -1,4 +1,4 @@
-"""Closed-loop eval of the skydreamer_cf steer/forest policy on REAL simulated events.
+"""Closed-loop eval of a proxy-trained policy on physically rendered (Isaac + EVIS) events.
 
 Replaces the analytic event proxy the policy was trained on with the full
 Isaac-rendered warp-accelerated EVIS event stream, in the SAME task geometry
@@ -9,11 +9,11 @@ Per control tick (10 ms):
   render 1 RTX keyframe (HDR + motion vectors + depth) at the drone pose
   -> warp K=4 -> 400 Hz fine frames -> EVIS event model -> per-tick ON/OFF
   counts -> rolling 30 ms window (3 ticks) -> 64x64x2 sum-binned -> uint8 obs
-  -> TCP to the dreamer policy process -> 2-D heading action back -> kinematics.
+  -> TCP to the policy process -> 2-D action back -> kinematics.
 
-The policy side is scripts/isaac_bridge_client.py in skydreamer_cf (conda env
-`dreamerv3`, JAX CPU). Start THIS script first (it binds the socket), then the
-client; or use the driver script which launches both.
+The policy side is training/isaac_client_ppo.py (JAX CPU). Start THIS script
+first (it binds the socket), then the client; training/configs/isaac_eval.sh
+launches both.
 
 Protocol (little-endian):
   server->client per tick: b'O' + flags u8 (1=is_first, 2=is_last, 4=is_terminal)
@@ -38,7 +38,7 @@ import time
 
 import numpy as np
 
-# ---------------- task constants (mirror skydreamer_cf quad_course_env) -------
+# ---------------- task constants (mirror proxy/quad_course_env.py) ------------
 STEER_DT = 0.01
 KYAW = 2.5
 COLLIDE_CLEAR = 0.10

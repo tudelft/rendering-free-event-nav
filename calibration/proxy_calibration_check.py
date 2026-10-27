@@ -2,11 +2,10 @@
 
 Renders N frames from the current training task and compares the standard
 representation statistics against pinned references (real rec1.bin, and the
-latest Isaac eval reference). Prints PASS/WARN per statistic and appends to
-docs/CALIBRATION_LOG.md. Robustness DR is allowed to SPREAD the distribution;
+latest Isaac eval reference). Prints PASS/WARN per statistic. Robustness DR is allowed to SPREAD the distribution;
 this gate checks the CENTER hasn't drifted.
 
-Usage: JAX_PLATFORMS=cpu python scripts/proxy_calibration_check.py [task] [note]
+Usage: JAX_PLATFORMS=cpu python calibration/proxy_calibration_check.py [task] [note]
 """
 import os, sys, struct, datetime
 os.environ.setdefault('JAX_PLATFORMS', 'cpu')

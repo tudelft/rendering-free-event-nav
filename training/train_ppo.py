@@ -2,12 +2,12 @@
 family. The env is SkyCourse's own jitted closures, vmapped (env_vec.py), so
 the observation/dynamics contract is identical to the DreamerV3 runs.
 
-Usage (dreamerv3 env python):
+Usage (the paper run is training/configs/ours.sh):
   python training/train_ppo.py --task yawzoneh32r7w20gxv3 --logdir runs/ppo_gx_v3 \
       --num-envs 512 --total-steps 100e6
-Checkpoints: <logdir>/ckpt.pkl (latest), <logdir>/BEST.pkl (det-eval banked).
-Deterministic eval (mean action) on 30 fixed seeds runs every --eval-every
-updates; scores.jsonl logs per-update stats.
+Checkpoints: <logdir>/ckpt.pkl (latest, every --eval-every updates) and
+<logdir>/BEST.pkl (highest stochastic training-rollout reach so far); scores.jsonl
+logs per-update stats. Deterministic evaluation: training/eval_proxy.py.
 """
 import argparse
 import json
@@ -271,7 +271,7 @@ def main():
             epoch, (ts_a, ts_c), jax.random.split(key, args.epochs))
         return ts_a, ts_c, kls.mean()
 
-    # (deterministic eval lives in ppo/eval_det.py; training logs stochastic reach)
+    # (deterministic eval is training/eval_proxy.py; training logs stochastic reach)
 
     key, kr = jax.random.split(key)
     state, stack, obs = vreset(jax.random.split(kr, B))

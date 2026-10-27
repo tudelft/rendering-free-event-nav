@@ -51,7 +51,7 @@ renderer; optimised rendering stacks will do better than that figure.
 No Isaac Sim, no dataset and no event recordings are needed to train or evaluate in the proxy.
 
 ```bash
-git clone --recurse-submodules https://github.com/dfordequan/rendering-free-event-nav
+git clone --recurse-submodules https://github.com/tudelft/rendering-free-event-nav
 cd rendering-free-event-nav
 pip install -r requirements.txt            # install jax[cuda] matching your CUDA version
 

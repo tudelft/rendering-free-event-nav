@@ -1,8 +1,8 @@
-"""Isaac bridge client for PPO checkpoints — same TCP protocol as
-scripts/isaac_bridge_client.py (b'O' + flags + reward + vector + image /
+"""Isaac bridge client for PPO checkpoints — TCP protocol served by
+isaac_eval/forest_policy_eval.py (b'O' + flags + reward + vector + image /
 action floats back). Maintains the frame stack client-side.
 
-Usage: JAX_PLATFORMS=cpu python ppo/isaac_client_ppo.py <ckpt.pkl> [port]
+Usage: JAX_PLATFORMS=cpu python training/isaac_client_ppo.py <ckpt.pkl> [port]
 """
 import os
 import pickle

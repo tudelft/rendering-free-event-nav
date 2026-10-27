@@ -105,8 +105,7 @@ def segment_edge_points(p0, p1, n=8):
 def shadow_edge_points(xy, r, h, sun_az, sun_elev, n=6, max_len=4.0):
     """Ground-shadow streaks cast by vertical trunks — the #1 real-event source
     MISSING from this proxy (measured 2026-08-06: Isaac closed-loop eval of
-    steer4 went 0% -> 23% just by removing scene shadows; see
-    runs/isaac_eval/ + robosim CLAUDE.md).
+    steer4 went 0% -> 23% just by removing scene shadows).
 
     A trunk at ``xy`` with height ``h`` under a sun at azimuth ``sun_az``
     (direction the light TRAVELS, i.e. shadow extends along +az) and elevation

@@ -513,7 +513,7 @@ STEER_F = EP.focal_from_fov(STEER_FOV, STEER_H)
 # EVENT_GAIN_BY_H is therefore chosen empirically to hold the frame's median nonzero value roughly
 # constant across resolutions -- the same principle the Isaac bridge uses when it auto-calibrates
 # its count->uint8 gain to the proxy's median nonzero of 51.
-# Calibrated 2026-08-11 by scripts/calibrate_event_gain.py on `magzone`, matching the SATURATION
+# Calibrated 2026-08-11 by calibration/calibrate_event_gain.py on `magzone`, matching the SATURATION
 # FRACTION (H=64: 10.22% of pixels pegged at 255; H=32 @ gain 2.25: 10.06%). Median-nonzero is a
 # poor target here because BOTH resolutions are already heavily saturated -- see the note below.
 # Occupancy is gain-invariant and intrinsically higher at 32 (25.7% vs 14.7%): the same edge
@@ -527,7 +527,7 @@ EVENT_GAIN = 3.0                       # simulate_event_frame's own default gain
 # H=32 RECALIBRATED 2026-08-13 for the BINNED path (render 64 -> sum-pool 2x2). Pooling sums the
 # per-pixel noise as well as the signal, so the old native-32 value (2.25) is far too hot here;
 # 1.0 matches the 64x64 saturation fraction (2.98% vs 2.80%). Isaac --calib-target = 76.
-EVENT_GAIN_BY_H = {64: 3.0, 32: 1.0}   # see scripts/calibrate_event_gain.py
+EVENT_GAIN_BY_H = {64: 3.0, 32: 1.0}   # see calibration/calibrate_event_gain.py
 
 # ---- GenX320 SINGLE-CHANNEL OBS (`gx` tasks, calibrated 2026-08-18 against genx320_grayscale/
 # rec1.bin, 186 recorded frames, and openmv/drivers/sensors/genx320.c) --------------------------
@@ -897,7 +897,7 @@ def sample_zoneforest_obs_sc(key, course, n_obs):
 #
 # NOTE: the nuisance DR (salt, horizon) is injected at RENDER resolution and therefore gets summed
 # by the pooling, exactly as Isaac's noise does. The gain must be re-calibrated for this path --
-# see scripts/calibrate_event_gain.py.
+# see calibration/calibrate_event_gain.py.
 EVENT_BLOB_P = 0.3                     # probability of applying the 3x3 box blur
 
 
@@ -963,7 +963,7 @@ def steer_focal(H):
 # The gain depends on the INTEGRATION WINDOW as well as the resolution: streak length (and hence
 # both magnitude and the number of lit pixels) scales with dt_evt. Round 8 introduced a 0.10 s
 # window for the ~10 Hz board rate, which needs a much lower gain than the 0.03 s window.
-# Calibrated by scripts/calibrate_event_gain.py to match the SATURATION FRACTION:
+# Calibrated by calibration/calibrate_event_gain.py to match the SATURATION FRACTION:
 #   (32, 0.03) gain 1.00 -> median  30, sat 0.79%   (33 Hz profile)
 #   (32, 0.10) gain 0.15 -> median  32, sat 0.83%   (10 Hz profile; Isaac --calib-target 32)
 EVENT_GAIN_BY_H_DT = {(32, 0.10): 0.15}

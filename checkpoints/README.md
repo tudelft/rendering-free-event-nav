@@ -16,7 +16,8 @@ Reported scores for this exact file:
 
 | evaluation | result |
 |---|---|
-| in-proxy, deterministic, training distribution | 91 % goal-reach |
+| in-proxy, deterministic (mean action), seeds 1000–1029, CPU | 77 % (23/30), 2.74 m/s mean speed |
+| in-proxy, stochastic training rollouts at the saved update (`ck['reach']`) | 91 % |
 | Isaac Sim + EVIS, shadow scene, n=30 | 83 % (25/30), 2.38 m/s AGV |
 | Isaac Sim + EVIS, texture scene, n=30 | 70 % (21/30), 1.62 m/s AGV |
 | real flights, three arenas | 82 % (5/5, 5/6, 4/6) |

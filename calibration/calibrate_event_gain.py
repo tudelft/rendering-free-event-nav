@@ -11,7 +11,7 @@ problem than the 64x64 one.
 We match the MEDIAN NONZERO uint8 value of the delivered observation (the same quantity the Isaac
 bridge calibrates its count->uint8 gain against, target 51).
 
-Usage: JAX_PLATFORMS=cpu python scripts/calibrate_event_gain.py [task] [episodes]
+Usage: JAX_PLATFORMS=cpu python calibration/calibrate_event_gain.py [task] [episodes]
 """
 import os
 os.environ.setdefault('JAX_PLATFORMS', 'cpu')

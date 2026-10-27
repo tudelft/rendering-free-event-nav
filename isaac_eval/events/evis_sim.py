@@ -3,8 +3,8 @@
 The full EVIS plugin (isaac-sim-event-camera-plugin) targets Isaac Lab, but its
 *pure core* (physics-grounded log-intensity model + sensor-noise models) runs
 standalone on torch. This wraps `BatchedMultiCamProcessor` behind the same
-interface as :class:`~robosim.events.esim.EventSimulator` (`update(frame, t)`
--> `(N,4)` [t,x,y,polarity]) so `EventProcessor(backend="evis")` swaps it in.
+interface as an ESIM-style event simulator (`update(frame, t)`
+-> `(N,4)` [t,x,y,polarity]) so it can be swapped in for one.
 
 Needs the cloned repo on the path (EVIS_PATH env var, or pass ``evis_path``) and
 torch (Isaac's python has it). More faithful than the built-in ESIM: linear/HDR
@@ -17,9 +17,8 @@ import os
 
 import numpy as np
 
-# events/ -> robosim/robosim/events ; two levels up = the robosim repo root
-_DEFAULT_EVIS = os.path.join(os.path.dirname(__file__), "..", "..",
-                             "isaac-sim-event-camera-plugin")
+# events/ -> isaac_eval/ ; the EVIS plugin is the submodule at isaac_eval/evis
+_DEFAULT_EVIS = os.path.join(os.path.dirname(__file__), "..", "evis")
 
 
 class EvisEventSimulator:
@@ -50,7 +49,7 @@ class EvisEventSimulator:
             noise_model = noise if isinstance(noise, DVSNoiseModel) else \
                 DVSNoiseModel(noise, float(c_pos))
 
-        self._rec = GeneralDVSRecorder(output_dir="/tmp/evis_robosim")
+        self._rec = GeneralDVSRecorder(output_dir="/tmp/evis_events")
         self._proc = BatchedMultiCamProcessor(
             self._rec, "cam", threshold=float(c_pos), noise=noise_model)
         self._proc.stash_events = True     # expose per-frame (pos,neg) masks
