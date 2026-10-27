@@ -1,0 +1,13 @@
+# Onboard deployment chain only (deploy/convert/): Flax checkpoint -> Torch -> ONNX -> int8.
+# Not needed to train or evaluate in the proxy — install on top of requirements.txt.
+#
+#   pip install -r requirements.txt -r requirements-deploy.txt
+#
+# Versions below are the ones this chain was verified against; newer usually works.
+torch>=2.1          # verified with 2.13.0
+onnx>=1.15          # verified with 1.22.0
+onnxruntime>=1.17   # verified with 1.29.0
+#
+# The final compile step (deploy/convert/run_stedgeai.sh) additionally needs
+# ST Edge AI Core v4, a vendor toolchain that is not pip-installable. See
+# deploy/convert/CONVERT.md.
