@@ -123,7 +123,12 @@ def make_env(task, frame_stack=3, vmin=None, vmax=None, yawrate_max=None, ceilin
 
     def _img(frame):
         if genx:
-            return jnp.clip(frame * QC.GENX_CONTRAST + QC.GENX_BRIGHTNESS,
+            # jnp.rint, NOT a bare astype: astype truncates toward zero, so a net of +1 maps
+            # to 128.6 -> 128 and the event is lost, while -1 maps to 127.4 -> 127 and is kept.
+            # That silently dropped every weak ON event. Invisible while the model produced few
+            # weak events; it surfaced as 19% ON against a 35% target once background activity
+            # was added. Also note this is GENX_CONTRAST (the H=32 constant), not genx_contrast(H).
+            return jnp.clip(jnp.rint(frame * QC.GENX_CONTRAST + QC.GENX_BRIGHTNESS),
                             0, 255).astype(jnp.uint8)
         return jnp.clip(frame * 32.0, 0, 255).astype(jnp.uint8)
 

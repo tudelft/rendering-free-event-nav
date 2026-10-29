@@ -809,6 +809,18 @@ def gx_scene_points(key, course):
     return pts, valid
 
 
+# ---- BACKGROUND ACTIVITY (step 1, 2026-10) ---------------------------------------------------
+# Motion-independent population measured on 30 onboard flights: real density ~49% and
+# uncorrelated with commanded speed (r = +0.04), vs ~19% for the motion-driven model alone.
+# GX_BG_RATE is Poisson mean counts per pixel per integration window; calibrated by bench/.
+GX_BG_RATE = float(os.environ.get('GX_BG_RATE', 0.46))   # P(>=1) = 1-exp(-rate) = 0.37;
+                                                         # env-overridable for bench/ A-B runs
+GX_BG_ON = float(os.environ.get('GX_BG_ON', 0.16))      # ON share of the background population
+GX_BG_SCALE = float(os.environ.get('GX_BG_SCALE', 6.25))  # = 1/GENX_CONTRAST: one background
+                                                          # event must clear one uint8 count,
+                                                          # otherwise rint sends it back to 128
+
+
 def gx_ground_dr(key, H=32):
     """Per-episode params for event_proxy's analytic ground shader -> dict.
     `evt` is per-CELL counts, so it carries the same area scaling as the point
@@ -912,9 +924,26 @@ def _box_blur3(fr):
     return acc / 9.0
 
 
+def _add_background(frame, key, bg_rate, bg_on, bg_scale):
+    """Add motion-independent background activity as the LAST stage (see EP.background_net).
+
+    The key is derived with fold_in rather than split so that bg_rate = 0 leaves the caller's
+    noise stream untouched and existing checkpoints stay bit-identical.
+    """
+    if not (isinstance(bg_rate, jnp.ndarray) or bg_rate > 0.0):
+        return frame
+    bg = EP.background_net(jax.random.fold_in(key, 0xB6), frame.shape[0],
+                           bg_rate, bg_on, bg_scale)
+    if frame.shape[-1] == 1:
+        return frame + bg[:, :, None]
+    frame = frame.at[:, :, 0].add(jnp.maximum(bg, 0.0))
+    return frame.at[:, :, 1].add(jnp.maximum(-bg, 0.0))
+
+
 def render_event_frame(cam_pos, R, v_world, omega_body, pts, valid, H_out, dt, key,
                        gain, horizon_mag, salt_p, salt_val, render_h=None, blob_p=EVENT_BLOB_P,
                        channels=2, pol_hash=False, sat_knee=None, ground=None, pol_grain=None,
+                       bg_rate=0.0, bg_on=0.35, bg_scale=1.0,
                        dilate_w=None):
     """Event frame at H_out, produced by rendering at `render_h` (default STEER_H) and SUM-POOLING
     -- the same generation path as the Isaac/hardware binning. Falls back to a direct render when
@@ -928,12 +957,13 @@ def render_event_frame(cam_pos, R, v_world, omega_body, pts, valid, H_out, dt, k
     # stream for the 64x64 tasks too and silently break reproducibility of every existing
     # checkpoint's evals -- caught by a frame-sum regression (12567200 -> 12566002).
     if H_out == render_h:
-        return EP.simulate_event_frame(
+        return _add_background(EP.simulate_event_frame(
             cam_pos, R, v_world, omega_body, pts, valid, steer_focal(render_h), render_h,
             dt=dt, key=key, dr=True, gain=gain,
             horizon_mag=horizon_mag, salt_p=salt_p, salt_val=salt_val, channels=channels,
-            pol_hash=pol_hash, sat_knee=sat_knee, ground=ground, pol_grain=pol_grain)
-    k_ev, k_blob = jax.random.split(key, 2)
+            pol_hash=pol_hash, sat_knee=sat_knee, ground=ground, pol_grain=pol_grain),
+            key, bg_rate, bg_on, bg_scale)
+    k_ev, k_blob, k_bg = jax.random.split(key, 3)
     frame = EP.simulate_event_frame(
         cam_pos, R, v_world, omega_body, pts, valid, steer_focal(render_h), render_h,
         dt=dt, key=k_ev, dr=True, gain=gain,
@@ -952,6 +982,7 @@ def render_event_frame(cam_pos, R, v_world, omega_body, pts, valid, H_out, dt, k
         if blob_p > 0.0:
             do = jax.random.uniform(k_blob, ()) < blob_p
             frame = jnp.where(do, _box_blur3(frame), frame)
+    frame = _add_background(frame, k_bg, bg_rate, bg_on, bg_scale)
     return frame
 
 

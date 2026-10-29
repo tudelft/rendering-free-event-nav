@@ -163,6 +163,15 @@ def simulate_event_frame(cam_pos, R, v_world, omega_body, pts, valid, f, H,
         the ground/background boundary flickers under motion in the real stream.
       salt_p / salt_val : background count-noise rate and amplitude (RTX-denoiser-like floor;
         randomize per episode, e.g. salt_p in [0.001, 0.006], salt_val in {1, 2}).
+      bg_rate / bg_on / bg_scale : BACKGROUND ACTIVITY, the motion-independent population
+        (step 1 of the 2026-10 proxy rework). Measured on 30 onboard flights: real event
+        density is ~49% and is UNCORRELATED with commanded speed (r = +0.04), sitting at 51%
+        even at zero command, whereas this model is motion-driven by construction and reaches
+        only ~19%. Junction leakage and shot noise fire pixels with no brightness change at
+        all (Gallego et al. 2022, Sec. II-D). bg_rate is the Poisson mean counts per pixel per
+        window, bg_on the ON share of them (real pooled: 35.4%), bg_scale their magnitude.
+        The matched-density control says this population is nearly unstructured, so it is
+        drawn per pixel and NOT placed on edges.
     Returns [H,W,2] float32 event frame."""
     C = (H - 1) / 2.0
     # pts may carry per-point outward NORMALS in columns 3:6 (motion-consistent polarity,
@@ -344,6 +353,27 @@ def simulate_event_frame(cam_pos, R, v_world, omega_body, pts, valid, f, H,
         # (see GENX_CONTRAST in quad_course_env.py).
         return frame[..., 0:1] - frame[..., 1:2]
     return frame
+
+
+def background_net(key, H, rate, on_frac=0.354, scale=1.0):
+    """Motion-independent background activity as a signed net frame [H,H].
+
+    Measured on 30 onboard flights: real event density is ~49% and UNCORRELATED with
+    commanded speed (r = +0.04), sitting at 51% even at zero command, while the motion-driven
+    model alone reaches ~19%. Junction leakage and shot noise fire pixels with no brightness
+    change at all (Gallego et al. 2022, Sec. II-D). The matched-density control says this
+    population is nearly unstructured, so it is drawn independently per pixel.
+
+    APPLY THIS LAST, after any contour smear. Smearing a sign-imbalanced random field lets the
+    majority polarity take over its neighbours: injecting it before the smear measured 19% ON
+    against a 35% target, and 37% after.
+
+    rate: Poisson mean counts per pixel per integration window. on_frac: ON share.
+    """
+    k1, k2 = jax.random.split(key)
+    n = jax.random.poisson(k1, jnp.clip(rate, 0.0, None), (H, H)).astype(jnp.float32)
+    sign = jnp.where(jax.random.uniform(k2, (H, H)) < on_frac, 1.0, -1.0)
+    return scale * n * sign
 
 
 # --------------------------------- self-test / viz ---------------------------------

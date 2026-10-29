@@ -468,7 +468,9 @@ class SkyCourse(elements.Env):
                     pol_grain=((drp[5] if _sqroom else QC.GX_POL_GRAIN) if _genx else None),
                     dilate_w=((drp[6] if _sqroom else QC.GX_DILATE_W) if _genx else None),
                     sat_knee=((QC.GENX_KNEE * (drp[4] if _sqroom else 1.0)) if _genx else None),
-                    ground=(QC.gx_ground_dr(gkey, ev_h) if _genx else None))
+                    ground=(QC.gx_ground_dr(gkey, ev_h) if _genx else None),
+                    bg_rate=(QC.GX_BG_RATE if _genx else 0.0),
+                    bg_on=QC.GX_BG_ON, bg_scale=QC.GX_BG_SCALE)
                 if _scenedr:
                     dd = jnp.min(jnp.linalg.norm(s.p[:2][None, :] - oxy, axis=-1)
                                  - jnp.abs(orr))
@@ -551,8 +553,14 @@ class SkyCourse(elements.Env):
                 frame, proprio, priv = self._obs_st(self._state, k, self._obs_xy, self._obs_r,
                                                     self._pts, self._valid, self._drp)
                 if self.genx:            # GenX320 DIFF3D grayscale: USAT(net*contrast + brightness)
-                    img = np.clip(np.asarray(frame) * QC.genx_contrast(self.H) + QC.GENX_BRIGHTNESS,
-                                  0, 255).astype(np.uint8)                        # [H,W,1] net frame
+                    # np.rint, NOT a bare astype: astype truncates toward zero, which at H=64
+                    # (contrast 0.64) maps net=+1 to 128.64 -> 128 and loses the event, while
+                    # net=-1 maps to 127.36 -> 127 and keeps it. That silently discarded every
+                    # weak ON event and biased polarity; it was invisible while the model had
+                    # few weak events, and showed up as 19% ON against a 35% target once the
+                    # background-activity population was added.
+                    img = np.rint(np.clip(np.asarray(frame) * QC.genx_contrast(self.H)
+                                          + QC.GENX_BRIGHTNESS, 0, 255)).astype(np.uint8)
                 else:
                     img = np.clip(np.asarray(frame) * 32.0, 0, 255).astype(np.uint8)  # [H,W,2] event frame
                 out = {
