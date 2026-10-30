@@ -471,7 +471,8 @@ class SkyCourse(elements.Env):
                     ground=(QC.gx_ground_dr(gkey, ev_h) if _genx else None),
                     bg_rate=(QC.GX_BG_RATE if _genx else 0.0),
                     bg_on=QC.GX_BG_ON, bg_scale=QC.GX_BG_SCALE, bg_sigma=QC.GX_BG_SIGMA,
-                    gain_sigma=(QC.GX_GAIN_SIGMA if _genx else 0.0))
+                    gain_sigma=(QC.GX_GAIN_SIGMA if _genx else 0.0),
+                    sil=(n_obs_static if (_genx and QC.GX_SILHOUETTE) else 0))
                 if _scenedr:
                     dd = jnp.min(jnp.linalg.norm(s.p[:2][None, :] - oxy, axis=-1)
                                  - jnp.abs(orr))

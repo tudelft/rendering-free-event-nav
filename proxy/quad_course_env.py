@@ -813,6 +813,8 @@ def gx_scene_points(key, course):
 # Motion-independent population measured on 30 onboard flights: real density ~49% and
 # uncorrelated with commanded speed (r = +0.04), vs ~19% for the motion-driven model alone.
 # GX_BG_RATE is Poisson mean counts per pixel per integration window; calibrated by bench/.
+GX_SILHOUETTE = int(os.environ.get('GX_SILHOUETTE', 1))     # 1 = rebuild trunk points on the
+                                                           # view-dependent silhouette each frame
 GX_BG_SIGMA = float(os.environ.get('GX_BG_SIGMA', 1.4))     # log-normal spread of background magnitude
 GX_GAIN_SIGMA = float(os.environ.get('GX_GAIN_SIGMA', 1.2))  # log-normal spread of per-edge contrast
 GX_BG_RATE = float(os.environ.get('GX_BG_RATE', 0.386))   # P(>=1) = 1-exp(-rate) = 0.37;
@@ -946,6 +948,7 @@ def render_event_frame(cam_pos, R, v_world, omega_body, pts, valid, H_out, dt, k
                        gain, horizon_mag, salt_p, salt_val, render_h=None, blob_p=EVENT_BLOB_P,
                        channels=2, pol_hash=False, sat_knee=None, ground=None, pol_grain=None,
                        bg_rate=0.0, bg_on=0.35, bg_scale=1.0, bg_sigma=0.0, gain_sigma=0.0,
+                       sil=None,
                        dilate_w=None):
     """Event frame at H_out, produced by rendering at `render_h` (default STEER_H) and SUM-POOLING
     -- the same generation path as the Isaac/hardware binning. Falls back to a direct render when
@@ -955,6 +958,24 @@ def render_event_frame(cam_pos, R, v_world, omega_body, pts, valid, H_out, dt, k
     is linear so pool(net) == net(pool) -- the binned single-channel frame is exact."""
     render_h = int(render_h or STEER_H)
     H_out = int(H_out)
+    if sil:
+        # Replace the static naz x nv trunk grid with points on the view-dependent silhouette.
+        # Same point count, so `valid` and every downstream shape are untouched; the budget
+        # just moves onto the two generators that actually produce the contour.
+        #
+        # Centre, radius and height are derived from the existing trunk block rather than
+        # threaded in: the grid is symmetric about the trunk axis, so its mean gives the
+        # centre, the mean radial distance gives r and the max z gives the height. The scene
+        # arrays that would otherwise carry these differ per task (for `sq`, drp[4] is the
+        # knee multiplier, not a height), and deriving them keeps this path task-agnostic.
+        npt = FOREST_NV_DR * FOREST_NAZ_DR
+        n_tree = int(sil)
+        blk = pts[:n_tree * npt, :3].reshape(n_tree, npt, 3)
+        c_xy = blk[:, :, :2].mean(axis=1)                                   # [n_tree,2]
+        c_r = jnp.linalg.norm(blk[:, :, :2] - c_xy[:, None, :], axis=2).mean(axis=1)
+        c_h = blk[:, :, 2].max(axis=1)
+        new = EP.cylinder_silhouette_points(cam_pos, c_xy, c_r, c_h, ns=npt // 2)
+        pts = pts.at[:n_tree * npt, :3].set(new)
     # Pass `key` STRAIGHT THROUGH on the native path. Splitting it here would shift the noise
     # stream for the 64x64 tasks too and silently break reproducibility of every existing
     # checkpoint's evals -- caught by a frame-sum regression (12567200 -> 12566002).

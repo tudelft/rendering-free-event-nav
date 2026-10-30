@@ -41,6 +41,42 @@ def cylinder_edge_points(xy, r, h, nv=8, naz=3):
     return jax.vmap(one)(xy, r, h).reshape(-1, 3)             # [N*naz*nv, 3]
 
 
+def cylinder_silhouette_points(cam_xy, xy, r, h, ns=64, zlo=0.05):
+    """Vertical cylinders -> points on their two SILHOUETTE generators, as seen from cam_xy.
+
+    cylinder_edge_points samples a fixed naz x nv grid around the whole trunk. Most of those
+    azimuths are on the near or far face, where the z-buffer keeps only one per pixel, so the
+    budget is spent on points that never fire while the silhouette - the part that actually
+    produces the contour - gets only naz/4 or so columns. The result is a dotted vertical line
+    (measured: mean vertical run 2.3 px against 3.7 on the real sensor).
+
+    A vertical cylinder's silhouette is exactly two vertical generator lines, at the tangent
+    points from the camera. Putting the same point budget on those two lines gives a
+    continuous contour at identical cost. The set is view-dependent, so unlike the static grid
+    it must be rebuilt each frame.
+
+    Returns [N*2*ns, 3], ordered per cylinder so it can replace the trunk block in-place when
+    2*ns == naz*nv.
+    """
+    d = xy - cam_xy[None, :2]                                  # [N,2] camera -> centre
+    dist = jnp.maximum(jnp.linalg.norm(d, axis=1), 1e-6)       # [N]
+    u = d / dist[:, None]
+    # right triangle cam-centre-tangent has its right angle at the tangent point, so the angle
+    # at the centre between centre->cam and centre->tangent is arccos(r/dist).
+    beta = jnp.arccos(jnp.clip(r / dist, -1.0, 1.0))           # [N]
+    cb, sb = jnp.cos(beta), jnp.sin(beta)
+    bx, by = -u[:, 0], -u[:, 1]                                # centre -> cam
+    tx = jnp.stack([cb * bx - sb * by, cb * bx + sb * by], 1)  # [N,2] rotated +-beta, x
+    ty = jnp.stack([sb * bx + cb * by, -sb * bx + cb * by], 1) # [N,2]              , y
+    gx = xy[:, 0:1] + r[:, None] * tx                          # [N,2] generator x
+    gy = xy[:, 1:2] + r[:, None] * ty
+    zf = jnp.linspace(zlo, 1.0, ns)                            # [ns]
+    X = jnp.repeat(gx, ns, axis=1)                             # [N, 2*ns]
+    Y = jnp.repeat(gy, ns, axis=1)
+    Z = jnp.tile(zf, 2)[None, :] * h[:, None]
+    return jnp.stack([X, Y, Z], -1).reshape(-1, 3)
+
+
 def pillar_edge_points(xy, r, h, shape, lean_vec, nv=16, naz=8, with_normals=False):
     """Shape-lottery pillars (2026-08-23): per-obstacle edge points, FIXED count
     nv*naz per pillar (matches cylinder_edge_points(nv,naz) shapes).
