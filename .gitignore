@@ -7,3 +7,6 @@ runs/
 
 # conversion intermediates (reproducible via deploy/convert/)
 deploy/convert/out/
+
+# generated comparison renders (regenerate with bench/make_compare_video.py)
+bench/out/
