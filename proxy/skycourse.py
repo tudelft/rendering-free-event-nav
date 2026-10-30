@@ -470,7 +470,8 @@ class SkyCourse(elements.Env):
                     sat_knee=((QC.GENX_KNEE * (drp[4] if _sqroom else 1.0)) if _genx else None),
                     ground=(QC.gx_ground_dr(gkey, ev_h) if _genx else None),
                     bg_rate=(QC.GX_BG_RATE if _genx else 0.0),
-                    bg_on=QC.GX_BG_ON, bg_scale=QC.GX_BG_SCALE)
+                    bg_on=QC.GX_BG_ON, bg_scale=QC.GX_BG_SCALE, bg_sigma=QC.GX_BG_SIGMA,
+                    gain_sigma=(QC.GX_GAIN_SIGMA if _genx else 0.0))
                 if _scenedr:
                     dd = jnp.min(jnp.linalg.norm(s.p[:2][None, :] - oxy, axis=-1)
                                  - jnp.abs(orr))

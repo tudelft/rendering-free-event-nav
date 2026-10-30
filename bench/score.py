@@ -22,7 +22,7 @@ RNG = np.random.default_rng(0)
 K8 = np.ones((3, 3), bool); K8[1, 1] = False
 # scored axes: name -> (higher-is-not-better is irrelevant; we score |relative error|)
 AXES = ['active_pct', 'on_pct', 'p50', 'p90', 'clustering', 'polarity', 'jaccard',
-        'row_top', 'row_mid', 'row_bot']
+        'row_top', 'row_mid', 'row_bot', 'vrun', 'anisotropy', 'elongation']
 
 
 def _nb(a):
@@ -30,6 +30,41 @@ def _nb(a):
     c[:, 1:, :] += a[:, :-1, :]; c[:, :-1, :] += a[:, 1:, :]
     c[:, :, 1:] += a[:, :, :-1]; c[:, :, :-1] += a[:, :, 1:]
     return c
+
+
+def _runs(mask, axis):
+    """Mean run length of True along `axis` (1 = rows/horizontal, 0 = columns/vertical)."""
+    m = mask if axis == 1 else np.swapaxes(mask, 1, 2)
+    pad = np.zeros((m.shape[0], m.shape[1], 1), bool)
+    f = np.concatenate([pad, m, pad], 2)
+    d = np.diff(f.astype(np.int8), axis=2)
+    starts, ends = np.flatnonzero(d == 1), np.flatnonzero(d == -1)
+    return float((ends - starts).mean()) if len(starts) else 0.0
+
+
+def _elongation(dev, cap=6000):
+    """MEDIAN (major/minor) axis ratio of connected components >= 4 px, clipped at 10.
+
+    How line-like the structures are: a continuous pole contour is elongated, blocky speckle
+    is not. Median and clipping are deliberate - thin components give near-singular
+    covariances, and the mean of the raw ratio was dominated by a few degenerate strips
+    (baseline scored 237 against a real 35, which says more about the tail than the shape).
+    """
+    out = []
+    for d in dev:
+        lab, n = ndimage.label(np.abs(d) > ACT)
+        if not n:
+            continue
+        for sl, i in zip(ndimage.find_objects(lab), range(1, n + 1)):
+            ys, xs = np.nonzero(lab[sl] == i)
+            if len(ys) < 4:
+                continue
+            c = np.cov(np.stack([ys, xs]).astype(float))
+            w = np.linalg.eigvalsh(c)
+            out.append(min(float(np.sqrt(max(w[1], 1e-6) / max(w[0], 1e-6))), 10.0))
+        if len(out) > cap:
+            break
+    return float(np.median(out)) if out else 0.0
 
 
 def metrics(dev):
@@ -52,7 +87,9 @@ def metrics(dev):
     f0, f1 = act[:-1], act[1:]
     jac = ((f0 & f1).sum((1, 2)) / np.maximum((f0 | f1).sum((1, 2)), 1)).mean()
     rows = act.mean((0, 2)) * 100
-    return dict(active_pct=act.mean() * 100,
+    vrun, hrun = _runs(act, 0), _runs(act, 1)
+    return dict(vrun=vrun, anisotropy=vrun / max(hrun, 1e-6), elongation=_elongation(dev[::4]),
+                active_pct=act.mean() * 100,
                 on_pct=(dev > ACT).sum() / max(act.sum(), 1) * 100,
                 p50=float(np.percentile(a, 50)), p90=float(np.percentile(a, 90)),
                 clustering=float(np.nanmean(blob) / np.nanmean(bn)),

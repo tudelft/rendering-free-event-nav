@@ -151,7 +151,7 @@ def simulate_event_frame(cam_pos, R, v_world, omega_body, pts, valid, f, H,
                          occlude=True, occ_tol=0.2,
                          horizon_mag=0.0, salt_p=0.0012, salt_val=1.0, channels=2,
                          pol_hash=False, sat_knee=None, ground=None,
-                         pol_grain=None):
+                         pol_grain=None, gain_sigma=0.0):
     """cam_pos:[3], R:[3,3] body->world, v_world:[3], omega_body:[3] (rad/s),
     pts:[M,3] world edge points, valid:[M] bool (padding mask). f focal px, H frame size.
     occlude: z-buffer depth test so only the NEAREST surface per pixel fires (a solid wall hides
@@ -215,6 +215,16 @@ def simulate_event_frame(cam_pos, R, v_world, omega_body, pts, valid, f, H,
         # the recording is 39%. Here `gain` is EVENT COUNTS deposited per edge point and `sat_knee`
         # the displacement (render px) above which the pixel reliably fires.
         base = jnp.clip(speed / sat_knee, 0.0, 1.0) * gain * vis.astype(jnp.float32)
+        if (isinstance(gain_sigma, jnp.ndarray) or gain_sigma > 0.0) and key is not None:
+            # HEAVY-TAILED PER-EDGE CONTRAST (step 2, 2026-10). A single global `gain` gives
+            # every edge the same response, so the magnitude distribution is far too compressed:
+            # measured p90 is 4 counts against 16 on the real sensor, with the median already
+            # correct. Real scenes contain a wide spread of albedo contrasts, and the survey
+            # also reports 2.5-4% pixel-to-pixel threshold mismatch on top of that. A
+            # log-normal multiplier per edge point widens the tail while leaving the median
+            # (exp(0) = 1) in place.
+            kg = jax.random.fold_in(key, 0x9A17)
+            base = base * jnp.exp(gain_sigma * jax.random.normal(kg, base.shape))
 
     # PER-EDGE CONTRAST POLARITY (`gx` / GenX320 net path, 2026-08-18).
     # A real DIFF3D pixel signs its events by the direction of the BRIGHTNESS step, so whether the
@@ -355,7 +365,7 @@ def simulate_event_frame(cam_pos, R, v_world, omega_body, pts, valid, f, H,
     return frame
 
 
-def background_net(key, H, rate, on_frac=0.354, scale=1.0):
+def background_net(key, H, rate, on_frac=0.354, scale=1.0, sigma=0.0):
     """Motion-independent background activity as a signed net frame [H,H].
 
     Measured on 30 onboard flights: real event density is ~49% and UNCORRELATED with
@@ -364,16 +374,24 @@ def background_net(key, H, rate, on_frac=0.354, scale=1.0):
     change at all (Gallego et al. 2022, Sec. II-D). The matched-density control says this
     population is nearly unstructured, so it is drawn independently per pixel.
 
+    OCCUPANCY AND MAGNITUDE ARE SEPARATE. Poisson counts tie them together and put ~84% of the
+    population at exactly one count, which pinned the pooled median at 1 against a real 2 and
+    capped p90 at 4 against a real 16. Here occupancy is Bernoulli(1 - exp(-rate)) — matching
+    the Poisson model's active fraction, so `rate` keeps its meaning — and magnitude is a
+    separate log-normal with median 1 count and spread `sigma`, which the real distribution
+    needs (it is heavy-tailed: p50 2, p90 16, max at the 127 clip).
+
     APPLY THIS LAST, after any contour smear. Smearing a sign-imbalanced random field lets the
     majority polarity take over its neighbours: injecting it before the smear measured 19% ON
     against a 35% target, and 37% after.
-
-    rate: Poisson mean counts per pixel per integration window. on_frac: ON share.
     """
-    k1, k2 = jax.random.split(key)
-    n = jax.random.poisson(k1, jnp.clip(rate, 0.0, None), (H, H)).astype(jnp.float32)
+    k1, k2, k3 = jax.random.split(key, 3)
+    occ = (jax.random.uniform(k1, (H, H)) < (1.0 - jnp.exp(-jnp.clip(rate, 0.0, None))))
+    mag = jnp.where(sigma > 0.0,
+                    jnp.round(jnp.exp(sigma * jax.random.normal(k3, (H, H)))),
+                    jnp.ones((H, H)))
     sign = jnp.where(jax.random.uniform(k2, (H, H)) < on_frac, 1.0, -1.0)
-    return scale * n * sign
+    return scale * occ.astype(jnp.float32) * jnp.maximum(mag, 1.0) * sign
 
 
 # --------------------------------- self-test / viz ---------------------------------
