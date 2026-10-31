@@ -458,7 +458,8 @@ class SkyCourse(elements.Env):
                 frame = QC.render_event_frame(
                     s.p, R, s.v, s.w, pts, valid, ev_h,
                     dt=dt_evt, key=key,
-                    gain=((QC.genx_evt(ev_h) * (drp[3] if (_scenedr or _sqroom) else 1.0))
+                    gain=((QC.genx_evt(ev_h) * QC.GX_GAIN_MUL
+                           * (drp[3] if (_scenedr or _sqroom) else 1.0))
                           if _genx else ev_gain),
                     horizon_mag=drp[0] * (QC.GENX_NOISE_COUNTS if _genx else 1.0),
                     salt_p=drp[1],

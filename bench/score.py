@@ -23,7 +23,12 @@ K8 = np.ones((3, 3), bool); K8[1, 1] = False
 # scored axes: name -> (higher-is-not-better is irrelevant; we score |relative error|)
 AXES = ['active_pct', 'on_pct', 'p50', 'p90', 'clustering', 'polarity', 'jaccard',
         'row_top', 'row_mid', 'row_bot', 'vrun', 'anisotropy', 'elongation',
-        'vrun_s', 'aniso_s']
+        'vrun_s', 'aniso_s', 'clust_s']
+# clust_s is the axis that caught step 2 looking worse by eye while the scorecard improved:
+# pooled magnitude percentiles cannot tell "strong contours over a weak floor" from
+# "uniformly medium everything", so a heavy-tailed BACKGROUND satisfied p50/p90 by scattering
+# high-magnitude pixels at random. Real strong events cluster at 3.09; that variant scored
+# 1.64, which reads as snow. Clustering restricted to the strong subset makes it visible.
 # Morphology measured over ALL active pixels is dominated by the diffuse background once
 # density is realistic: the silhouette rewrite improved vertical runs by 8% and anisotropy by
 # 22% with the background off, and moved the pooled numbers by 0.00. The _s axes restrict the
@@ -100,8 +105,12 @@ def metrics(dev):
     thr = np.partition(mag.reshape(len(mag), -1), -k, axis=1)[:, -k][:, None, None]
     strong = mag >= np.maximum(thr, 1)
     vs, hs = _runs(strong, 0), _runs(strong, 1)
+    bs = (_nb(strong) * strong).sum((1, 2)) / np.maximum(strong.sum((1, 2)), 1)
+    shs = np.stack([RNG.permutation(f.ravel()).reshape(f.shape) for f in strong])
+    bns = (_nb(shs) * shs).sum((1, 2)) / np.maximum(shs.sum((1, 2)), 1)
     return dict(vrun=vrun, anisotropy=vrun / max(hrun, 1e-6), elongation=_elongation(dev[::4]),
                 vrun_s=vs, aniso_s=vs / max(hs, 1e-6),
+                clust_s=float(np.nanmean(bs) / np.nanmean(bns)),
                 active_pct=act.mean() * 100,
                 on_pct=(dev > ACT).sum() / max(act.sum(), 1) * 100,
                 p50=float(np.percentile(a, 50)), p90=float(np.percentile(a, 90)),

@@ -813,10 +813,13 @@ def gx_scene_points(key, course):
 # Motion-independent population measured on 30 onboard flights: real density ~49% and
 # uncorrelated with commanded speed (r = +0.04), vs ~19% for the motion-driven model alone.
 # GX_BG_RATE is Poisson mean counts per pixel per integration window; calibrated by bench/.
+GX_GAIN_MUL = float(os.environ.get('GX_GAIN_MUL', 2.5))     # edge-deposit multiplier: the
+                                                           # contour population must sit clearly
+                                                           # above the background floor
 GX_SILHOUETTE = int(os.environ.get('GX_SILHOUETTE', 1))     # 1 = rebuild trunk points on the
                                                            # view-dependent silhouette each frame
-GX_BG_SIGMA = float(os.environ.get('GX_BG_SIGMA', 1.4))     # log-normal spread of background magnitude
-GX_GAIN_SIGMA = float(os.environ.get('GX_GAIN_SIGMA', 1.2))  # log-normal spread of per-edge contrast
+GX_BG_SIGMA = float(os.environ.get('GX_BG_SIGMA', 0.5))     # log-normal spread of background magnitude
+GX_GAIN_SIGMA = float(os.environ.get('GX_GAIN_SIGMA', 1.0))  # log-normal spread of per-edge contrast
 GX_BG_RATE = float(os.environ.get('GX_BG_RATE', 0.386))   # P(>=1) = 1-exp(-rate) = 0.37;
                                                          # env-overridable for bench/ A-B runs
 GX_BG_ON = float(os.environ.get('GX_BG_ON', 0.16))      # ON share of the background population

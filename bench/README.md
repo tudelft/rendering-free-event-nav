@@ -46,17 +46,22 @@ Defaults now ship the step-2c calibration. Any axis can be re-swept with the env
 | anisotropy | 1.02 | 0.83 | 0.96 |
 | elongation | 2.07 | 2.62 | 2.14 |
 
-Still open, in priority order:
+Step 4 (rebalance): **16.1 %**. Step 2 and 3 scored well but looked *worse* by eye, and the
+scorecard could not see why. Pooled p50/p90 cannot tell "strong contours over a weak floor"
+from "uniformly medium everything", so a heavy-tailed BACKGROUND satisfied them by scattering
+high-magnitude pixels at random — which reads as snow. `clust_s` (clustering restricted to
+the strongest 15 % of events) makes it visible: real 3.08, baseline 3.47, step 2 **1.64**.
 
-1. **Contour continuity** — `vrun` 2.28 against 3.71. Each cylinder is point-sampled at
-   `FOREST_NV_DR x FOREST_NAZ_DR` positions, so a pole's silhouette arrives as a dotted line.
-   Rasterising the two silhouette generators as *segments* would make it continuous and is
-   cheaper than the points it replaces.
-2. **Above the horizon** — `row_top` 35 against 56. The proxy's world has no overhead
-   structure; the real arena has truss, lights and curtains.
-3. **Temporal persistence** — `jaccard` 0.37 against 0.45. Frames are rendered independently;
-   real pixels carry a residual toward their threshold. EVIS reaches 0.435, so it is learnable.
-4. **Polarity coherence** — 0.97 against 0.70, pushed the wrong way by the diffuse background.
+The underlying error was that the background was stronger than the edges: an edge point
+deposits ~4.5 net units (0.7 uint8 counts) while each background event was set to 12.5 net
+units (2 counts). `GX_GAIN_MUL` raises the edge deposit so the contour population sits clearly
+above the floor; `GX_BG_SIGMA` drops so the floor stays weak.
 
-None of this is validated against transfer yet: the submitted proxy reached 83/70/82 % *with*
-a 3x density gap, so statistical agreement is a hypothesis about transfer, not evidence of it.
+| | REAL | baseline | step 3 | step 4 |
+|---|---|---|---|---|
+| vrun_s | 2.30 | 2.32 | 1.56 | 1.92 |
+| aniso_s | 1.10 | 0.86 | 1.08 | 1.11 |
+| clust_s | 3.08 | 3.47 | 1.90 | 2.33 |
+| mean err | — | 37.6 % | 17.8 % | **16.1 %** |
+
+Still open
