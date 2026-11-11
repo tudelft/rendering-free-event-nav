@@ -566,7 +566,8 @@ GENX_BRIGHTNESS = 128
 # edge travelled -- see event_proxy.simulate_event_frame. GENX_EVT is the one fitted number: it is
 # set so the sim's active-|px-128| quantiles land on the recording's (p50 2, p75 6, p90 12, p95 17).
 GENX_EVT = 18.0
-GENX_KNEE = 0.35                       # render px; below this the edge does not reliably fire
+GENX_KNEE = float(os.environ.get('GX_KNEE', 0.6))   # render px; below this the edge does not
+                                                     # reliably fire. env-overridable for bench/
 # The nuisance DR magnitudes (salt_val, horizon_mag) are in the OLD linear-magnitude units; at
 # 0.16 uint8/count they would quantise to zero, so scale them into count units for gx.
 GENX_NOISE_COUNTS = 8.0
